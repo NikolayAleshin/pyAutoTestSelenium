@@ -1,0 +1,71 @@
+services:
+  selenium-hub:
+    image: selenium/hub:latest
+    container_name: selenium-hub
+    environment:
+      - GRID_TIMEOUT=30000
+      - SE_OPTS=-host 0.0.0.0 -port 4444
+      - JAVA_OPTS=-Xmx512m -Xms256m
+    ports:
+      - "4444:4444"
+    logging:
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  chrome:
+    image: seleniarm/node-chromium:latest
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    logging:
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - /dev/shm:/dev/shm
+
+  firefox:
+    image: seleniarm/node-firefox:latest
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    logging:
+      options:
+        max-size: "50m"
+        max-file: "5"
+    volumes:
+      - /dev/shm:/dev/shm
+
+  tests:
+    build: .
+    depends_on:
+      - selenium-hub
+    environment:
+      - SELENIUM_HOST=selenium-hub
+      - SELENIUM_PORT=4444
+    volumes:
+      - ./allure-results:/app/allure-results
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["pytest --alluredir=/app/allure-results && curl -X GET http://allure:5050/generate-report && sleep 10"]
+
+  allure:
+    image: frankescobar/allure-docker-service
+    environment:
+      CHECK_RESULTS_EVERY_SECONDS: 5
+      KEEP_HISTORY: "TRUE"
+    ports:
+      - "5050:5050"
+      - "5051:5051"
+    volumes:
+      - ./allure-results:/app/allure-results
+      - ./allure-reports:/app/default-reports
+#      - ./generate-and-serve.sh:/app/generate-and-serve.sh
+#    entrypoint: ["/bin/bash", "-c"]
+#    command: ["/app/generate-and-serve.sh"]

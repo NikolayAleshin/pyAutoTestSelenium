@@ -1,0 +1,5 @@
+.venv
+
+# Allure results and reports
+allure-results/
+allure-reports/

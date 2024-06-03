@@ -1,0 +1,1 @@
+http://localhost:5050/allure-docker-service/projects/default/reports/latest/index.html
